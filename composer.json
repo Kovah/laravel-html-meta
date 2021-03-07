@@ -1,0 +1,65 @@
+{
+  "name": "kovah/laravel-html-meta",
+  "description": "A Laravel package to parse meta information from an URL.",
+  "keywords": [
+    "html",
+    "meta",
+    "parser",
+    "laravel"
+  ],
+  "homepage": "https://github.com/kovah/laravel-html-meta",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Kevin Woblick",
+      "email": "mail@kovah.de",
+      "homepage": "https://kovah.de",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": "^7.3 | ^8.0",
+    "guzzlehttp/guzzle": "^7.2",
+    "illuminate/http": "^7.0 | ^8.0",
+    "illuminate/support": "^7.0 | ^8.0"
+  },
+  "require-dev": {
+    "mockery/mockery": "^1.4.2",
+    "orchestra/testbench": "^6.13",
+    "phpunit/phpunit": "^9.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Kovah\\HtmlMeta\\": "src"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Kovah\\HtmlMeta\\Tests\\": "tests"
+    }
+  },
+  "scripts": {
+    "test": "vendor/bin/phpunit"
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Kovah\\HtmlMeta\\HtmlMetaServiceProvider"
+      ],
+      "aliases": {
+        "HtmlMeta": "Kovah\\HtmlMeta\\Facades\\HtmlMeta"
+      }
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/kovah"
+    }
+  ]
+}
