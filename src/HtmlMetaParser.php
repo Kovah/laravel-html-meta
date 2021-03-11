@@ -49,7 +49,7 @@ class HtmlMetaParser implements MetaParser
     }
 
     /**
-     * Parses the meta tags from HTML by using a specific regex.
+     * Parses the meta tags and the tile from HTML by using a specific regex.
      * Returns an array of all found meta tags or an empty array if no tags were found.
      *
      * @param string $html
@@ -61,11 +61,12 @@ class HtmlMetaParser implements MetaParser
         $pattern = '/<[\s]*meta[\s]*(name|property)="?([^>"]*)"?[\s]*content="?([^>"]*)"?[\s]*[\/]?[\s]*>/i';
 
         if (preg_match_all($pattern, $html, $out)) {
-            $keys = array_map('strtolower', $out[2]);
+            $keys = array_map(function ($key) {
+                return strtolower(trim($key));
+            }, $out[2]);
             $tags = array_combine($keys, $out[3]);
         }
 
-        // Parse the title
         $res = preg_match("/<title>(.*)<\/title>/siU", $html, $titleMatches);
 
         if ($res) {

@@ -7,6 +7,26 @@ use Illuminate\Support\Facades\Http;
 class HtmlMetaParserTest extends TestCase
 {
     /**
+     * Test if the helper correctly trims whitespace off the meta keys.
+     */
+    public function testMetaFormattingWithMalformedTags(): void
+    {
+        $testHtml = '<!DOCTYPE html><head>' .
+            '<meta name=" twitter:description " content="Text Value for Twitter Description">' .
+            '</head></html>';
+
+        Http::fake([
+            '*' => Http::response($testHtml, 200),
+        ]);
+
+        $url = 'https://duckduckgo.com/';
+        $meta = $this->app['HtmlMeta']->forUrl($url);
+
+        self::assertArrayHasKey('twitter:description', $meta);
+        self::assertEquals('Text Value for Twitter Description', $meta['twitter:description']);
+    }
+
+    /**
      * Test if the helper is able to convert a non-UTF-8 title into UTF-8.
      * hex2bin('3c7469746c653ecfe8eae0e1f33c2f7469746c653e') translates to
      * '<title>Пикабу</title>' in this case. 'Пикабу' must be correctly parsed
