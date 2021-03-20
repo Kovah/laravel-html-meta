@@ -147,4 +147,29 @@ class HtmlMetaParserTest extends TestCase
         self::assertArrayHasKey('description', $meta);
         self::assertEquals('Qualität', $meta['description']);
     }
+
+    /**
+     * Test the HTML Meta helper function with a valid URL and HTML characters
+     * encoded as entity numbers.
+     * Examples:
+     * - A title containing &#8212; must be converted to "—".
+     * - A description containing &lt; must be converted to "<".
+     */
+    public function testMetaEncodingWithHtml(): void
+    {
+        $testHtml = '<!DOCTYPE html><head>' .
+            '<title>Example Article Title &#8212; Site Name</title>' .
+            '<meta name="description" content="&gt; Example description for this nice article. &lt;" />' .
+            '</head></html>';
+
+        Http::fake([
+            '*' => Http::response($testHtml),
+        ]);
+
+        $url = 'https://html-entities-test.com/';
+        $meta = $this->app['HtmlMeta']->forUrl($url);
+
+        self::assertEquals('Example Article Title — Site Name', $meta['title']);
+        self::assertEquals('> Example description for this nice article. <', $meta['description']);
+    }
 }

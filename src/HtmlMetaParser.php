@@ -136,6 +136,10 @@ class HtmlMetaParser implements MetaParser
             } elseif (mb_detect_encoding($content, 'UTF-8', true) === false) {
                 $this->metaTags[$tag] = $this->fallback[$tag] ?? null;
             }
+
+            // Properly convert HTML tags
+            $this->metaTags[$tag] = html_entity_decode(str_replace('&amp;', '&', $this->metaTags[$tag]), ENT_QUOTES)
+                ?: $this->fallback[$tag];
         }
     }
 }
