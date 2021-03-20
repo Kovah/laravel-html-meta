@@ -72,6 +72,7 @@ The default parser shipping with this package extracts the meta tags from the HT
   - or as the HTML http-equiv="content-type" tag (<meta http-equiv="content-type" content="text/html;
   charset=utf-8">) We try to parse the charset in this exact order.
 - The value of all parsed meta tags is converted from the source charset (if available) to UTF-8, if it does not match UTF-8. **If the meta tag value cannot be converted, it is replaced by `null`!** The only exception is the title, which will be replaced by the hostname of the URL in case a conversion is not possible.
+- HTML entities such as `&#8212;` are converted to the correct characters, in this example `—`.
 
 
 ---
