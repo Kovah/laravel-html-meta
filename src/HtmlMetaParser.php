@@ -139,7 +139,7 @@ class HtmlMetaParser implements MetaParser
 
             // Properly convert HTML tags
             $this->metaTags[$tag] = html_entity_decode(str_replace('&amp;', '&', $this->metaTags[$tag]), ENT_QUOTES)
-                ?: $this->fallback[$tag];
+                ?: $this->fallback[$tag] ?? null;
         }
     }
 }

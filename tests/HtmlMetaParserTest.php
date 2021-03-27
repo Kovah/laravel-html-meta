@@ -172,4 +172,26 @@ class HtmlMetaParserTest extends TestCase
         self::assertEquals('Example Article Title — Site Name', $meta['title']);
         self::assertEquals('> Example description for this nice article. <', $meta['description']);
     }
+
+    /**
+     * Test the HTML Meta helper function with a valid, but empty meta tag.
+     * Should return null.
+     */
+    public function testMetaEncodingWithEmptyHtml(): void
+    {
+        $testHtml = '<!DOCTYPE html><head>' .
+            '<title>Example Article Title &#8212; Site Name</title>' .
+            '<meta name="description" content="" />' .
+            '</head></html>';
+
+        Http::fake([
+            '*' => Http::response($testHtml),
+        ]);
+
+        $url = 'https://html-entities-test.com/';
+        $meta = $this->app['HtmlMeta']->forUrl($url);
+
+        self::assertEquals('Example Article Title — Site Name', $meta['title']);
+        self::assertEquals(null, $meta['description']);
+    }
 }
