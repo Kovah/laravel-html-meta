@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.0
+
+- `HtmlMeta::forUrl('https://kovah.de')` now returns an `` object, which holds  the URI, original response and the meta.
+  You can migrate your existing implementation by replacing `HtmlMeta::forUrl('https://kovah.de')` with `HtmlMeta::forUrl('https://kovah.de')->getMeta()`.
+
 ## 1.1.1
 
 - Fixes handling of empty meta tags, empty meta tags will be `null` in the resulting array.

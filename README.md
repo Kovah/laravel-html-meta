@@ -22,7 +22,7 @@ The `HtmlMeta` class is available as a facade and exposes the `forUrl` function.
 
 ```php
 try {
-    $metaTags = \Kovah\HtmlMeta\Facades\HtmlMeta::forUrl('https://kovah.de');
+    $metaTags = \Kovah\HtmlMeta\Facades\HtmlMeta::forUrl('https://kovah.de')->getMeta();
 } catch (\Kovah\HtmlMeta\Exceptions\InvalidUrlException $e) {
     // the provided URL is invalid
 } catch (\Kovah\HtmlMeta\Exceptions\UnreachableUrlException $e) {
@@ -46,6 +46,16 @@ The `$metaTags` variable now contains the following data:
   "twitter:card" => "summary_large_image",
   // ...
 ];
+```
+
+If you want to use the response of the original request made to parse the HTML meta, you can get it with the `` method like this:
+
+```php
+$metaResults = \Kovah\HtmlMeta\Facades\HtmlMeta::forUrl('https://kovah.de');
+
+$response = $metaResults->getResponse(); // Illuminate\Http\Client\Response
+$metaTags = $metaResults->getMeta(); // array
+$url = $metaResults->getUrl(); // string
 ```
 
 

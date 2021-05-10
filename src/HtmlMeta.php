@@ -27,16 +27,16 @@ class HtmlMeta
      * and then return the tags as an array.
      *
      * @param string $url
-     * @return array
+     * @return HtmlMetaResult
      * @throws InvalidUrlException|UnreachableUrlException
      */
-    public function forUrl(string $url): array
+    public function forUrl(string $url): HtmlMetaResult
     {
         $this->validateUrl($url);
-
         $response = $this->fetchUrl($url);
+        $meta = $this->parser->parse($url, $response);
 
-        return $this->parser->parse($url, $response);
+        return new HtmlMetaResult($url, $response, $meta);
     }
 
     /**

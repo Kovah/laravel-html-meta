@@ -1,13 +1,13 @@
 <?php
 
-namespace Kovah\HtmlMeta\Tests;
-
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Kovah\HtmlMeta\Exceptions\InvalidUrlException;
 use Kovah\HtmlMeta\Exceptions\UnreachableUrlException;
+use Kovah\HtmlMeta\HtmlMetaResult;
+use Kovah\HtmlMeta\Tests\TestCase;
 
 class HtmlMetaTest extends TestCase
 {
@@ -28,10 +28,13 @@ class HtmlMetaTest extends TestCase
         ]);
 
         $url = 'https://test.com/';
-        $meta = $this->app['HtmlMeta']->forUrl($url);
+        $result = $this->app['HtmlMeta']->forUrl($url);
 
-        self::assertArrayHasKey('title', $meta);
-        self::assertEquals('Test Title', $meta['title']);
+        self::assertTrue(is_a($result, HtmlMetaResult::class));
+
+        self::assertArrayHasKey('title', $result->getMeta());
+        self::assertEquals('Test Title', $result->getMeta()['title']);
+        self::assertTrue(is_a($result->getResponse(), \Illuminate\Http\Client\Response::class));
     }
 
     /**
@@ -103,7 +106,7 @@ class HtmlMetaTest extends TestCase
      */
     public function testConnectionError(): void
     {
-        Http::fake(function (Request $request) {
+        Http::fake(function () {
             throw new ConnectionException(
                 'cURL error 7: Failed to connect to 192.168.0.123 port 54623: Connection refused'
             );

@@ -18,6 +18,7 @@ class HtmlMetaServiceProvider extends LaravelServiceProvider
         });
 
         $this->app->singleton('html-meta', HtmlMeta::class);
+        $this->app->alias(HtmlMeta::class, 'html-meta');
     }
 
     public function boot(): void

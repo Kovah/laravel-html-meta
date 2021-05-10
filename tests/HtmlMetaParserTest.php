@@ -1,8 +1,7 @@
 <?php
 
-namespace Kovah\HtmlMeta\Tests;
-
 use Illuminate\Support\Facades\Http;
+use Kovah\HtmlMeta\Tests\TestCase;
 
 class HtmlMetaParserTest extends TestCase
 {
@@ -20,10 +19,10 @@ class HtmlMetaParserTest extends TestCase
         ]);
 
         $url = 'https://duckduckgo.com/';
-        $meta = $this->app['HtmlMeta']->forUrl($url);
+        $result = $this->app['HtmlMeta']->forUrl($url);
 
-        self::assertArrayHasKey('twitter:description', $meta);
-        self::assertEquals('Text Value for Twitter Description', $meta['twitter:description']);
+        self::assertArrayHasKey('twitter:description', $result->getMeta());
+        self::assertEquals('Text Value for Twitter Description', $result->getMeta()['twitter:description']);
     }
 
     /**
@@ -40,14 +39,14 @@ class HtmlMetaParserTest extends TestCase
             '</head></html>';
 
         Http::fake([
-            '*' => Http::response($testHtml, 200),
+            '*' => Http::response($testHtml),
         ]);
 
         $url = 'https://duckduckgo.com/';
-        $meta = $this->app['HtmlMeta']->forUrl($url);
+        $result = $this->app['HtmlMeta']->forUrl($url);
 
-        self::assertArrayHasKey('title', $meta);
-        self::assertEquals('Пикабу', $meta['title']);
+        self::assertArrayHasKey('title', $result->getMeta());
+        self::assertEquals('Пикабу', $result->getMeta()['title']);
     }
 
     /**
@@ -68,10 +67,10 @@ class HtmlMetaParserTest extends TestCase
         ]);
 
         $url = 'https://duckduckgo.com/';
-        $meta = $this->app['HtmlMeta']->forUrl($url);
+        $result = $this->app['HtmlMeta']->forUrl($url);
 
-        self::assertArrayHasKey('title', $meta);
-        self::assertEquals('duckduckgo.com', $meta['title']);
+        self::assertArrayHasKey('title', $result->getMeta());
+        self::assertEquals('duckduckgo.com', $result->getMeta()['title']);
     }
 
     /**
@@ -91,10 +90,10 @@ class HtmlMetaParserTest extends TestCase
         ]);
 
         $url = 'https://duckduckgo.com/';
-        $meta = $this->app['HtmlMeta']->forUrl($url);
+        $result = $this->app['HtmlMeta']->forUrl($url);
 
-        self::assertArrayHasKey('title', $meta);
-        self::assertEquals('duckduckgo.com', $meta['title']);
+        self::assertArrayHasKey('title', $result->getMeta());
+        self::assertEquals('duckduckgo.com', $result->getMeta()['title']);
     }
 
     /**
@@ -117,10 +116,10 @@ class HtmlMetaParserTest extends TestCase
         ]);
 
         $url = 'https://encoding-test.com/';
-        $meta = $this->app['HtmlMeta']->forUrl($url);
+        $result = $this->app['HtmlMeta']->forUrl($url);
 
-        self::assertArrayHasKey('description', $meta);
-        self::assertEquals('Qualität', $meta['description']);
+        self::assertArrayHasKey('description', $result->getMeta());
+        self::assertEquals('Qualität', $result->getMeta()['description']);
     }
 
     /**
@@ -142,10 +141,10 @@ class HtmlMetaParserTest extends TestCase
         ]);
 
         $url = 'https://encoding-test.com/';
-        $meta = $this->app['HtmlMeta']->forUrl($url);
+        $result = $this->app['HtmlMeta']->forUrl($url);
 
-        self::assertArrayHasKey('description', $meta);
-        self::assertEquals('Qualität', $meta['description']);
+        self::assertArrayHasKey('description', $result->getMeta());
+        self::assertEquals('Qualität', $result->getMeta()['description']);
     }
 
     /**
@@ -167,10 +166,10 @@ class HtmlMetaParserTest extends TestCase
         ]);
 
         $url = 'https://html-entities-test.com/';
-        $meta = $this->app['HtmlMeta']->forUrl($url);
+        $result = $this->app['HtmlMeta']->forUrl($url);
 
-        self::assertEquals('Example Article Title — Site Name', $meta['title']);
-        self::assertEquals('> Example description for this nice article. <', $meta['description']);
+        self::assertEquals('Example Article Title — Site Name', $result->getMeta()['title']);
+        self::assertEquals('> Example description for this nice article. <', $result->getMeta()['description']);
     }
 
     /**
@@ -189,9 +188,9 @@ class HtmlMetaParserTest extends TestCase
         ]);
 
         $url = 'https://html-entities-test.com/';
-        $meta = $this->app['HtmlMeta']->forUrl($url);
+        $result = $this->app['HtmlMeta']->forUrl($url);
 
-        self::assertEquals('Example Article Title — Site Name', $meta['title']);
-        self::assertEquals(null, $meta['description']);
+        self::assertEquals('Example Article Title — Site Name', $result->getMeta()['title']);
+        self::assertEquals(null, $result->getMeta()['description']);
     }
 }
