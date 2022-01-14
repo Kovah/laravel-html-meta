@@ -32,11 +32,6 @@ class HtmlMetaTest extends TestCase
         $result = $this->app['HtmlMeta']->forUrl($url);
 
         self::assertTrue(is_a($result, HtmlMetaResult::class));
-
-        self::assertEquals(
-            'Laravel HTML Meta/2.1.0 (https://github.com/Kovah/laravel-html-meta)',
-            $result->getResponse()->transferStats->getRequest()->getHeader('User-Agent')[0]
-        );
         self::assertArrayHasKey('title', $result->getMeta());
         self::assertEquals('Test Title', $result->getMeta()['title']);
         self::assertTrue(is_a($result->getResponse(), \Illuminate\Http\Client\Response::class));
