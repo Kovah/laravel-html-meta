@@ -57,7 +57,7 @@ class HtmlMeta
             if (config('html-meta.user_agents', false)) {
                 // Add a random user agent from the configuration to the request
                 $agents = config('html-meta.user_agents');
-                $request->withUserAgent($agents[array_rand($agents)]);
+                $request->withHeaders(['User-Agent' => $agents[array_rand($agents)]]);
             }
 
             return $request->get($url)->throw();
