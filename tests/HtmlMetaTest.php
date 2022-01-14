@@ -1,5 +1,7 @@
 <?php
 
+namespace Kovah\HtmlMeta\Tests;
+
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
@@ -7,7 +9,6 @@ use Illuminate\Support\Facades\Http;
 use Kovah\HtmlMeta\Exceptions\InvalidUrlException;
 use Kovah\HtmlMeta\Exceptions\UnreachableUrlException;
 use Kovah\HtmlMeta\HtmlMetaResult;
-use Kovah\HtmlMeta\Tests\TestCase;
 
 class HtmlMetaTest extends TestCase
 {
@@ -32,6 +33,10 @@ class HtmlMetaTest extends TestCase
 
         self::assertTrue(is_a($result, HtmlMetaResult::class));
 
+        self::assertEquals(
+            'Laravel HTML Meta/2.1.0 (https://github.com/Kovah/laravel-html-meta)',
+            $result->getResponse()->transferStats->getRequest()->getHeader('User-Agent')[0]
+        );
         self::assertArrayHasKey('title', $result->getMeta());
         self::assertEquals('Test Title', $result->getMeta()['title']);
         self::assertTrue(is_a($result->getResponse(), \Illuminate\Http\Client\Response::class));

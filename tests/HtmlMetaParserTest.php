@@ -1,5 +1,7 @@
 <?php
 
+namespace Kovah\HtmlMeta\Tests;
+
 use Illuminate\Support\Facades\Http;
 use Kovah\HtmlMeta\Tests\TestCase;
 

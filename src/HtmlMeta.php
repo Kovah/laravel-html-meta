@@ -52,7 +52,15 @@ class HtmlMeta
     private function fetchUrl(string $url): Response
     {
         try {
-            return Http::timeout(config('html-meta.timeout', 10))->get($url)->throw();
+            $request = Http::timeout(config('html-meta.timeout', 10));
+
+            if (config('html-meta.user_agents', false)) {
+                // Add a random user agent from the configuration to the request
+                $agents = config('html-meta.user_agents');
+                $request->withUserAgent($agents[array_rand($agents)]);
+            }
+
+            return $request->get($url)->throw();
         } catch (ConnectionException | GuzzleRequestException | RequestException $e) {
             throw new UnreachableUrlException("$url is not reachable. " . $e->getMessage());
         }

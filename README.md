@@ -69,6 +69,27 @@ php artisan vendor:publish --provider="Kovah\HtmlMeta\HtmlMetaServiceProvider"
 
 The configuration can now be found under `config/html-meta.php`.
 
+### Setting a custom User Agent
+
+The package allows you to set one or more custom User Agents which will be used to send the requests. The User Agent(s) you want to use must be specified as an array in the package configuration html-meta.php like this:
+
+```
+'user_agents' => [
+    'Mozilla/5.0 (Windows NT 6.4) AppleWebKit/537.36.0 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12) AppleWebKit/…4.1.28 (KHTML, like Gecko) Version/15.2.0 Safari/604.1.28',
+    'Mozilla/5.0 (compatible; Googlebot/2.1.0; +http://www.google.com/bot.html)',
+    ...
+]
+```
+
+The HTML Meta package will randomly choose one of the User Agents for each request. If you want to use only one User Agent, remove all others from the list:
+
+```
+'user_agents' => [
+    'Mozilla/5.0 (Windows NT 6.4) AppleWebKit/537.36.0 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36.0'
+]
+```
+
 
 ## Parsing Details
 
