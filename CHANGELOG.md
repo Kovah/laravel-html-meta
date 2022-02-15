@@ -1,8 +1,13 @@
 # Changelog
 
-## 2.0.1
+## 2.1.1
 
 - Add compatibility with Laravel 9.
+
+## 2.1.0
+
+- This package now requires at least PHP 7.4, but should be compatible with PHP 8.1 already.
+- Adds a new configuration option to use custom User Agents while doing the requests.
 
 ## 2.0.0
 
