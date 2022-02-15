@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.1
+
+- Add compatibility with Laravel 9.
+
 ## 2.0.0
 
 - `HtmlMeta::forUrl('https://kovah.de')` now returns an `` object, which holds  the URI, original response and the meta.
