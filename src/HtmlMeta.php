@@ -52,7 +52,8 @@ class HtmlMeta
     private function fetchUrl(string $url): Response
     {
         try {
-            $request = Http::timeout(config('html-meta.timeout', 10));
+            $request = Http::timeout(config('html-meta.timeout', 10))
+                ->accept(config('html-meta.default_accept', 'text/html'));
 
             if (config('html-meta.user_agents', false)) {
                 // Add a random user agent from the configuration to the request
