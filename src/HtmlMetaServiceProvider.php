@@ -8,7 +8,7 @@ use Kovah\HtmlMeta\Contracts\MetaParser;
 
 class HtmlMetaServiceProvider extends LaravelServiceProvider
 {
-    public function register()
+    public function register(): void
     {
         $configPath = __DIR__ . '/../config/html-meta.php';
         $this->mergeConfigFrom($configPath, 'html-meta');

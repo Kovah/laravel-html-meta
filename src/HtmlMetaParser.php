@@ -7,14 +7,11 @@ use Kovah\HtmlMeta\Contracts\MetaParser;
 
 class HtmlMetaParser implements MetaParser
 {
-    /** @var array */
-    protected $metaTags;
+    protected array $metaTags;
 
-    /** @var array */
-    protected $fallback;
+    protected array $fallback;
 
-    /** @var string|null */
-    protected $charSet;
+    protected ?string $charSet = null;
 
     /**
      * Returns an array containing all meta tags parsed from the given HTML.

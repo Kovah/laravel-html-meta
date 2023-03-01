@@ -6,14 +6,11 @@ use Illuminate\Http\Client\Response;
 
 class HtmlMetaResult
 {
-    /** @var string */
-    protected $url;
+    protected string $url;
 
-    /** @var Response */
-    protected $response;
+    protected Response $response;
 
-    /** @var array */
-    protected $meta;
+    protected array $meta;
 
     public function __construct(string $url, Response $response, array $meta)
     {

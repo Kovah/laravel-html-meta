@@ -4,6 +4,7 @@ namespace Kovah\HtmlMeta;
 
 use GuzzleHttp\Exception\RequestException as GuzzleRequestException;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -12,8 +13,7 @@ use Kovah\HtmlMeta\Exceptions\UnreachableUrlException;
 
 class HtmlMeta
 {
-    /** @var HtmlMetaParser * */
-    private $parser;
+    private HtmlMetaParser $parser;
 
     public function __construct(HtmlMetaParser $parser)
     {
@@ -55,16 +55,53 @@ class HtmlMeta
             $request = Http::timeout(config('html-meta.timeout', 10))
                 ->accept(config('html-meta.default_accept', 'text/html'));
 
-            if (config('html-meta.user_agents', false)) {
-                // Add a random user agent from the configuration to the request
-                $agents = config('html-meta.user_agents');
-                $request->withHeaders(['User-Agent' => $agents[array_rand($agents)]]);
-            }
+            $request = $this->prepareHeaders($request);
 
             return $request->get($url)->throw();
-        } catch (ConnectionException | GuzzleRequestException | RequestException $e) {
+        } catch (ConnectionException|GuzzleRequestException|RequestException $e) {
             throw new UnreachableUrlException("$url is not reachable. " . $e->getMessage());
         }
+    }
+
+    private function prepareHeaders(PendingRequest $request): PendingRequest
+    {
+        $headers = [];
+
+        if (config('html-meta.user_agents', false)) {
+            // Add a random user agent from the configuration to the request
+            $agents = config('html-meta.user_agents');
+
+            $headers['User-Agent'] = $agents[array_rand($agents)];
+        }
+
+        if ($headerConfig = config('html-meta.custom_headers', false)) {
+            if (!is_array($headerConfig)) {
+                $headerConfig = $this->parseCustomHeaderString($headerConfig);
+
+            }
+            foreach ($headerConfig as $header => $value) {
+                if (in_array(strtolower($header), ['user-agent', 'accept'])) {
+                    continue;
+                }
+                $headers[$header] = $value;
+            }
+        }
+
+        return empty($headers) ? $request : $request->withHeaders($headers);
+    }
+
+    private function parseCustomHeaderString(string $customHeaders): array
+    {
+        $newHeaders = [];
+        $rawHeaders = explode('|', $customHeaders);
+        foreach ($rawHeaders as $rawHeader) {
+            if (!str_contains($rawHeader, '=')) {
+                continue;
+            }
+            [$key, $value] = explode('=', $rawHeader);
+            $newHeaders[$key] = $value;
+        }
+        return $newHeaders;
     }
 
     /**

@@ -117,4 +117,71 @@ class HtmlMetaTest extends TestCase
         $url = 'https://unreachable-website.com/';
         $this->app['HtmlMeta']->forUrl($url);
     }
+
+    /**
+     * Tests the correct addition of a user agent to the request.
+     */
+    public function testWithCustomUserAgent(): void
+    {
+        Http::fake(['*' => Http::response()]);
+
+        config()->set('html-meta.user_agents', [
+            'My Custom User-Agent'
+        ]);
+
+        $this->app['HtmlMeta']->forUrl('https://example.com');
+
+        Http::assertSent(function (Request $request) {
+            return $request->hasHeader('User-Agent', 'My Custom User-Agent');
+        });
+    }
+
+    /**
+     * Tests the correct addition of custom headers to a requests, if specified
+     * as an array.
+     */
+    public function testWithCustomHeaders(): void
+    {
+        Http::fake(['*' => Http::response()]);
+
+        config()->set('html-meta.custom_headers', [
+            'Accept-Encoding' => 'gzip,deflate',
+            'Cache-Control' => 'no-cache',
+        ]);
+
+        $this->app['HtmlMeta']->forUrl('https://example.com');
+
+        Http::assertSent(function (Request $request) {
+            return $request->hasHeader('Accept-Encoding', 'gzip,deflate') &&
+                $request->hasHeader('Cache-Control', 'no-cache');
+        });
+    }
+
+    /**
+     * Tests the correct addition of custom headers to a requests, if specified
+     * as a string.
+     */
+    public function testWithCustomHeadersAsString(): void
+    {
+        Http::fake(['*' => Http::response()]);
+
+        // Test a correctly configured string
+        config()->set('html-meta.custom_headers', 'Accept-Encoding=gzip,deflate|Cache-Control=no-cache');
+
+        $this->app['HtmlMeta']->forUrl('https://example.com');
+
+        Http::assertSent(function (Request $request) {
+            return $request->hasHeader('Accept-Encoding', 'gzip,deflate') &&
+                $request->hasHeader('Cache-Control', 'no-cache');
+        });
+
+        // Test a deformed string
+        config()->set('html-meta.custom_headers', 'Accept-Encoding:gzip,deflate| ');
+
+        $this->app['HtmlMeta']->forUrl('https://example.com');
+
+        Http::assertSent(function (Request $request) {
+            return !$request->hasHeader('Accept-Encoding', 'gzip,deflate');
+        });
+    }
 }
