@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.2.0
+
+- Add compatibility with Laravel 10 and PHP 8.2.
+- Add option to add custom headers via the configuration. See [the config file](./config/html-meta.php) for more details.
+
 ## 2.1.1
 
 - Add compatibility with Laravel 9.
@@ -11,7 +16,7 @@
 
 ## 2.0.0
 
-- `HtmlMeta::forUrl('https://kovah.de')` now returns an `` object, which holds  the URI, original response and the meta.
+- `HtmlMeta::forUrl('https://kovah.de')` now returns an `Kovah\HtmlMeta\HtmlMetaResult` object that holds the URI, original response and the meta.
   You can migrate your existing implementation by replacing `HtmlMeta::forUrl('https://kovah.de')` with `HtmlMeta::forUrl('https://kovah.de')->getMeta()`.
 
 ## 1.1.1
