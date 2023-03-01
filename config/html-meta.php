@@ -31,7 +31,7 @@ return [
      *
      * 'custom_headers' => [
      *     'Accept-Encoding' => 'gzip, deflate',
-     *     'Accept-Encoding' => 'gzip, deflate',
+     *     'referer' => 'https://example.com',
      * ],
      *
      * 'custom_headers' => 'Accept-Encoding=gzip,deflate|referer=https://example.com'
