@@ -8,6 +8,41 @@ use Kovah\HtmlMeta\Tests\TestCase;
 class HtmlMetaParserTest extends TestCase
 {
     /**
+     * Test if meta tags are correctly parsed from a URL
+     */
+    public function testMetaParsingFromUrl(): void
+    {
+        $testHtml = '<!DOCTYPE html><head>' .
+            '<meta name=" twitter:description " content="Text Value for Twitter Description">' .
+            '</head></html>';
+
+        Http::fake([
+            '*' => Http::response($testHtml),
+        ]);
+
+        $url = 'https://duckduckgo.com/';
+        $result = $this->app['HtmlMeta']->forUrl($url);
+
+        self::assertArrayHasKey('twitter:description', $result->getMeta());
+        self::assertEquals('Text Value for Twitter Description', $result->getMeta()['twitter:description']);
+    }
+
+    /**
+     * Test if meta tags are correctly parsed from HTML
+     */
+    public function testMetaParsingFromHtml(): void
+    {
+        $testHtml = '<!DOCTYPE html><head>' .
+            '<meta name=" twitter:description " content="Text Value for Twitter Description">' .
+            '</head></html>';
+
+        $result = $this->app['HtmlMeta']->fromHtml($testHtml);
+
+        self::assertArrayHasKey('twitter:description', $result->getMeta());
+        self::assertEquals('Text Value for Twitter Description', $result->getMeta()['twitter:description']);
+    }
+
+    /**
      * Test if the helper correctly trims whitespace off the meta keys.
      */
     public function testMetaFormattingWithMalformedTags(): void
@@ -122,6 +157,29 @@ class HtmlMetaParserTest extends TestCase
 
         self::assertArrayHasKey('description', $result->getMeta());
         self::assertEquals('Qualität', $result->getMeta()['description']);
+    }
+
+    /**
+     * Test the HTML Meta helper function with a valid URL and the charset defined
+     * in the content-type header, but without a value. Description must be empty then.
+     */
+    public function testMetaEncodingWithEmptyContentType(): void
+    {
+        $testHtml = '<!DOCTYPE html><head>' .
+            hex2bin('3c6d657461206e616d653d226465736372697074696f6e2220636f6e74656e743d225175616c6974e474223e') .
+            '</head></html>';
+
+        Http::fake([
+            '*' => Http::response($testHtml, 200, [
+                'Content-Type' => 'text/html; charset=',
+            ]),
+        ]);
+
+        $url = 'https://encoding-test.com/';
+        $result = $this->app['HtmlMeta']->forUrl($url);
+
+        self::assertArrayHasKey('description', $result->getMeta());
+        self::assertNull($result->getMeta()['description']);
     }
 
     /**

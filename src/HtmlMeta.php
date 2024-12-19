@@ -36,7 +36,25 @@ class HtmlMeta
         $response = $this->fetchUrl($url);
         $meta = $this->parser->parse($url, $response);
 
-        return new HtmlMetaResult($url, $response, $meta);
+        return new HtmlMetaResult($meta, $url, $response);
+    }
+
+    /**
+     * Get the HTML meta for a given URL. After validating the URL, its response
+     * is fetched and then passed to the specified parser. The parser takes care
+     * of reading the response body, extract all meta tags including the title
+     * and then return the tags as an array.
+     *
+     * @param string      $html
+     * @param array|null  $headers
+     * @param string|null $url
+     * @return HtmlMetaResult
+     */
+    public function fromHtml(string $html, ?array $headers = null, ?string $url = null): HtmlMetaResult
+    {
+        $meta = $this->parser->parseHtml($html, $headers, $url);
+
+        return new HtmlMetaResult($meta);
     }
 
     /**

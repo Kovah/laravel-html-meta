@@ -49,7 +49,7 @@ The `$metaTags` variable now contains the following data:
 ];
 ```
 
-If you want to use the response of the original request made to parse the HTML meta, you can get it with the `` method like this:
+If you want to use the response of the original request made to parse the HTML meta, you can get it with the `getResponse()` method like this:
 
 ```php
 $metaResults = \Kovah\HtmlMeta\Facades\HtmlMeta::forUrl('https://kovah.de');
@@ -57,6 +57,26 @@ $metaResults = \Kovah\HtmlMeta\Facades\HtmlMeta::forUrl('https://kovah.de');
 $response = $metaResults->getResponse(); // Illuminate\Http\Client\Response
 $metaTags = $metaResults->getMeta(); // array
 $url = $metaResults->getUrl(); // string
+```
+
+### Parsing HTML
+
+As an alternative to fetching HTML from a URL, you might also parse HTML directly:
+
+```php
+$myHtml = '<!DOCTYPE html><head><meta name=" twitter:description " content="Text Value for Twitter Description"> ...';
+$metaTags = \Kovah\HtmlMeta\Facades\HtmlMeta::fromHtml($myHtml)->getMeta();
+```
+
+To improve parsing and fallbacks, you might pass HTTP headers and the URL to the `fromHtml()` method like this:
+
+```php
+$myUrl = 'https://kovah.de';
+$httpHeaders = [
+    'content-type' => 'text/html; charset=iso-8859-1',
+];
+$myHtml = '<!DOCTYPE html><head><meta name=" twitter:description " content="Text Value for Twitter Description"> ...';
+$metaTags = \Kovah\HtmlMeta\Facades\HtmlMeta::fromHtml($myHtml, $httpHeaders, $myUrl)->getMeta();
 ```
 
 
