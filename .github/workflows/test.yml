@@ -11,8 +11,8 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        php: [ 8.3, 8.2, 8.1, 8.0 ]
-        laravel: [ 11.*, 10.*, 9.*, 8.* ]
+        php: [ 8.4, 8.3, 8.2, 8.1, 8.0 ]
+        laravel: [ 11.*, 10.*, 9.* ]
         include:
           - laravel: 11.*
             testbench: 9.*
@@ -20,8 +20,6 @@ jobs:
             testbench: 8.*
           - laravel: 9.*
             testbench: 7.*
-          - laravel: 8.*
-            testbench: 6.*
         exclude:
           # Laravel 11: PHP 8.2+ only
           - laravel: 11.*

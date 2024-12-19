@@ -9,7 +9,9 @@ class HtmlMetaParser implements MetaParser
 {
     protected array $metaTags;
 
-    protected array $fallback;
+    protected array $fallback = [
+        'title' => null,
+    ];
 
     protected ?string $charSet = null;
 
@@ -22,7 +24,7 @@ class HtmlMetaParser implements MetaParser
      */
     public function parse(string $url, Response $response): array
     {
-        $this->generateFallback($url, $response);
+        $this->generateFallback($url);
 
         $this->metaTags = $this->getMetaTags($response->body());
 
@@ -36,9 +38,8 @@ class HtmlMetaParser implements MetaParser
      * Set some fallbacks for meta tags.
      *
      * @param string   $url
-     * @param Response $response
      */
-    protected function generateFallback(string $url, Response $response): void
+    protected function generateFallback(string $url): void
     {
         $this->fallback = [
             'title' => parse_url($url, PHP_URL_HOST),
@@ -124,7 +125,7 @@ class HtmlMetaParser implements MetaParser
     protected function encodeMetaTags(): void
     {
         foreach ($this->metaTags as $tag => $content) {
-            if ($this->charSet !== 'utf-8') {
+            if ($this->charSet !== 'utf-8' && $this->charSet !== null) {
                 try {
                     $this->metaTags[$tag] = iconv($this->charSet, 'UTF-8', $content) ?: null;
                 } catch (\ErrorException $e) {
@@ -135,8 +136,11 @@ class HtmlMetaParser implements MetaParser
             }
 
             // Properly convert HTML tags
-            $this->metaTags[$tag] = html_entity_decode(str_replace('&amp;', '&', $this->metaTags[$tag]), ENT_QUOTES)
-                ?: $this->fallback[$tag] ?? null;
+            if ($this->metaTags[$tag] !== null) {
+                $this->metaTags[$tag] = html_entity_decode(str_replace('&amp;', '&', $this->metaTags[$tag]), ENT_QUOTES);
+            } else {
+                $this->metaTags[$tag] = $this->fallback[$tag] ?? null;
+            }
         }
     }
 }
