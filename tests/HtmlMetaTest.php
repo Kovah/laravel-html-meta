@@ -126,7 +126,7 @@ class HtmlMetaTest extends TestCase
         Http::fake(['*' => Http::response()]);
 
         config()->set('html-meta.user_agents', [
-            'My Custom User-Agent'
+            'My Custom User-Agent',
         ]);
 
         $this->app['HtmlMeta']->forUrl('https://example.com');
@@ -183,5 +183,28 @@ class HtmlMetaTest extends TestCase
         Http::assertSent(function (Request $request) {
             return !$request->hasHeader('Accept-Encoding', 'gzip,deflate');
         });
+    }
+
+    /**
+     * Tests the correct addition of custom options to a requests, if specified
+     * as an array. The query ?foo=bar must be added to the URI and the redirect
+     * must not be followed.
+     */
+    public function testWithCustomOptions(): void
+    {
+        Http::fake([
+            'https://example.com' => Http::response(status: 404),
+            'https://example.com?foo=bar' => Http::response(status: 302, headers: ['location' => 'https://example.com/about']),
+            'https://example.com/about' => Http::response('Hi'),
+        ]);
+
+        config()->set('html-meta.custom_options', [
+            'allow_redirects' => false,
+            'query' => ['foo' => 'bar'],
+        ]);
+
+        $response = $this->app['HtmlMeta']->forUrl('https://example.com')->getResponse();
+
+        $this->assertEquals(302, $response->status());
     }
 }

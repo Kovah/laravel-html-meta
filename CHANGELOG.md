@@ -1,5 +1,24 @@
 # Changelog
 
+## 4.2.0
+
+- Add option to add custom options to the Guzzle HTTP client via the configuration. See [the config file](./config/html-meta.php) for more details.
+
+## 4.1.0
+
+Compatibility with Laravel 12
+
+## 4.0.0
+
+- Added support for PHP 8.4.
+- Dropped support for PHP 7.x and Laravel 8.
+- Added option to parse HTML directly without fetching contents from an URL (#8).
+
+## 3.0.0
+
+- Added support for PHP 8.3 and Laravel 11.
+- Dropped support for PHP 7.x and Laravel 7.
+
 ## 2.2.0
 
 - Add compatibility with Laravel 10 and PHP 8.2.

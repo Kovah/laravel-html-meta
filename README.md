@@ -114,7 +114,6 @@ The HTML Meta package will randomly choose one of the User Agents for each reque
 
 The custom_headers configuration can contain any headers that should be added to any request, except User-Agent and Accept. It can be either an array of headers, or a pipe-separated string.
 
-
 ```php
 'custom_headers' => [
     'Accept-Encoding' => 'gzip, deflate',
@@ -128,6 +127,16 @@ Note: Pipes inside the headers as a string must be escaped with a backslash.
 
 ```php
 'custom_headers' => 'Accept-Encoding=gzip,deflate|referer=https://example.com'
+```
+
+### Adding custom Guzzle client options
+
+The custom_options configuration is an advanced feature and can be used to pass custom options to the Guzzle HTTP client. Possible options are documented here: http://docs.guzzlephp.org/en/stable/request-options.html
+
+```php
+'custom_options' => [
+    'allow_redirects' => false,
+],
 ```
 
 

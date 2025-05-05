@@ -14,6 +14,7 @@ use Kovah\HtmlMeta\Exceptions\UnreachableUrlException;
 class HtmlMeta
 {
     private HtmlMetaParser $parser;
+    private PendingRequest $request;
 
     public function __construct(HtmlMetaParser $parser)
     {
@@ -69,19 +70,20 @@ class HtmlMeta
      */
     private function fetchUrl(string $url): Response
     {
+        $this->request = Http::timeout(config('html-meta.timeout', 10))
+            ->accept(config('html-meta.default_accept', 'text/html'));
+
+        $this->prepareHeaders();
+        $this->prepareOptions();
+
         try {
-            $request = Http::timeout(config('html-meta.timeout', 10))
-                ->accept(config('html-meta.default_accept', 'text/html'));
-
-            $request = $this->prepareHeaders($request);
-
-            return $request->get($url)->throw();
+            return $this->request->get($url)->throw();
         } catch (ConnectionException|GuzzleRequestException|RequestException $e) {
             throw new UnreachableUrlException("$url is not reachable. " . $e->getMessage());
         }
     }
 
-    private function prepareHeaders(PendingRequest $request): PendingRequest
+    private function prepareHeaders(): void
     {
         $headers = [];
 
@@ -105,7 +107,9 @@ class HtmlMeta
             }
         }
 
-        return empty($headers) ? $request : $request->withHeaders($headers);
+        if (!empty($headers)) {
+            $this->request = $this->request->withHeaders($headers);
+        }
     }
 
     private function parseCustomHeaderString(string $customHeaders): array
@@ -120,6 +124,15 @@ class HtmlMeta
             $newHeaders[$key] = $value;
         }
         return $newHeaders;
+    }
+
+    private function prepareOptions(): void
+    {
+        $options = config('html-meta.custom_options');
+
+        if (is_array($options)) {
+            $this->request = $this->request->withOptions($options);
+        }
     }
 
     /**

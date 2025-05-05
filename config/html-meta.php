@@ -29,6 +29,8 @@ return [
      * [header name]=[value]|[header name]=[value]|...
      * Pipes inside the headers as a string must be escaped with a backslash.
      *
+     * Examples:
+     *
      * 'custom_headers' => [
      *     'Accept-Encoding' => 'gzip, deflate',
      *     'referer' => 'https://example.com',
@@ -37,4 +39,18 @@ return [
      * 'custom_headers' => 'Accept-Encoding=gzip,deflate|referer=https://example.com'
      */
     'custom_headers' => null,
+
+    /* ------------------------------------------------------------------------
+     * custom_options is an advanced feature and can be used to pass custom
+     * options to the Guzzle HTTP client. Possible options are documented
+     * here: http://docs.guzzlephp.org/en/stable/request-options.html
+     *
+     * Example:
+     *
+     * 'custom_options' => [
+     *     'debug' => true,
+     *     'proxy' => 'socks5://kevin:mypassword@my-proxy-server:5000',
+     * ],
+     */
+    'custom_options' => null,
 ];
