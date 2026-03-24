@@ -1,6 +1,6 @@
 # Laravel HTML Meta Package
 
-![Laravel Support: v9, v10, v11](https://img.shields.io/badge/Laravel%20Support-v9%2C%20v10%2C%20v11-blue) ![PHP Support: 8.x](https://img.shields.io/badge/PHP%20Support-8.0%2C%208.1%2C%208.2%2C%208.3%2C%208.4-blue)  
+![Laravel Support: v12, v13](https://img.shields.io/badge/Laravel%20Support-v12%2C%20v13-blue) ![PHP Support: 8.2, 8.3, 8.4, 8.5](https://img.shields.io/badge/PHP%20Support-8.2%2C%208.3%2C%208.4%2C%208.5-blue)  
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/kovah/laravel-html-meta) ![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/kovah/laravel-html-meta/test.yml?branch=main&label=Tests) ![GitHub](https://img.shields.io/github/license/kovah/laravel-html-meta)
 
 This package provides a simple helper to retrieve the HTML meta tags of a URL. It properly handles connection and client errors and converts the meta tag contents from the source encoding to UTF-8 if possible.
