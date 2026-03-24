@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.3.0
+
+- Add an optional `block_private_ips` configuration flag that blocks metadata fetches to non-public IP targets, including hostname targets that resolve to private or reserved IP addresses.
+
 ## 4.2.0
 
 - Add option to add custom options to the Guzzle HTTP client via the configuration. See [the config file](./config/html-meta.php) for more details.

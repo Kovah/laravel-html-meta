@@ -8,8 +8,10 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Kovah\HtmlMeta\Exceptions\DisallowedIpException;
 use Kovah\HtmlMeta\Exceptions\InvalidUrlException;
 use Kovah\HtmlMeta\Exceptions\UnreachableUrlException;
+use Psr\Http\Message\RequestInterface;
 
 class HtmlMeta
 {
@@ -29,7 +31,7 @@ class HtmlMeta
      *
      * @param string $url
      * @return HtmlMetaResult
-     * @throws InvalidUrlException|UnreachableUrlException
+     * @throws DisallowedIpException|InvalidUrlException|UnreachableUrlException
      */
     public function forUrl(string $url): HtmlMetaResult
     {
@@ -66,7 +68,7 @@ class HtmlMeta
      *
      * @param string $url
      * @return Response
-     * @throws UnreachableUrlException
+     * @throws DisallowedIpException|UnreachableUrlException
      */
     private function fetchUrl(string $url): Response
     {
@@ -75,6 +77,7 @@ class HtmlMeta
 
         $this->prepareHeaders();
         $this->prepareOptions();
+        $this->preparePrivateIpProtection();
 
         try {
             return $this->request->get($url)->throw();
@@ -135,11 +138,28 @@ class HtmlMeta
         }
     }
 
+    private function preparePrivateIpProtection(): void
+    {
+        if (!$this->shouldBlockPrivateIps()) {
+            return;
+        }
+
+        $this->request = $this->request->withRequestMiddleware(function (RequestInterface $request) {
+            $host = $this->normalizeHost($request->getUri()->getHost());
+
+            if ($host !== '') {
+                $this->assertHostUsesPublicIps($host, (string) $request->getUri());
+            }
+
+            return $request;
+        });
+    }
+
     /**
      * The HTML meta parser only accepts valid URLs with the HTTP or HTTP protocols.
      *
      * @param string $url
-     * @throws InvalidUrlException
+     * @throws DisallowedIpException|InvalidUrlException
      */
     private function validateUrl(string $url): void
     {
@@ -149,5 +169,87 @@ class HtmlMeta
         if ($invalidUri || $unsupportedProtocol) {
             throw new InvalidUrlException("$url is not a valid URL to parse its HTML meta.");
         }
+
+        if ($this->shouldBlockPrivateIps()) {
+            $host = parse_url($url, PHP_URL_HOST);
+
+            if (is_string($host)) {
+                $host = $this->normalizeHost($host);
+            }
+
+            if (is_string($host) && filter_var($host, FILTER_VALIDATE_IP) !== false) {
+                $this->assertHostUsesPublicIps($host, $url);
+            }
+        }
+    }
+
+    protected function shouldBlockPrivateIps(): bool
+    {
+        return config('html-meta.block_private_ips', false) === true;
+    }
+
+    /**
+     * @throws DisallowedIpException
+     */
+    protected function assertHostUsesPublicIps(string $host, string $url): void
+    {
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            if (!$this->isPublicIp($host)) {
+                throw new DisallowedIpException("$url points to a non-public IP address.");
+            }
+
+            return;
+        }
+
+        foreach ($this->resolveHostIps($host) as $ip) {
+            if (!$this->isPublicIp($ip)) {
+                throw new DisallowedIpException("$url resolves to a non-public IP address.");
+            }
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function resolveHostIps(string $host): array
+    {
+        $ips = [];
+        $records = @dns_get_record($host, DNS_A + DNS_AAAA);
+
+        if (is_array($records)) {
+            foreach ($records as $record) {
+                if (isset($record['ip'])) {
+                    $ips[] = $record['ip'];
+                }
+
+                if (isset($record['ipv6'])) {
+                    $ips[] = $record['ipv6'];
+                }
+            }
+        }
+
+        if (empty($ips)) {
+            $ipv4Addresses = @gethostbynamel($host);
+
+            if (is_array($ipv4Addresses)) {
+                $ips = $ipv4Addresses;
+            }
+        }
+
+        return array_values(array_unique($ips));
+    }
+
+    protected function isPublicIp(string $ip): bool
+    {
+        return filter_var(
+            $ip,
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+        ) !== false;
+    }
+
+    protected function normalizeHost(string $host): string
+    {
+        return trim($host, '[]');
     }
 }

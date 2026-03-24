@@ -17,6 +17,14 @@ return [
 
     'default_accept' => 'text/html',
 
+    /*
+     * When enabled, the package blocks requests to non-public IP addresses.
+     * Literal IP hosts are checked before the request is sent. Hostnames are
+     * resolved during request preparation and blocked if any DNS record points
+     * to a private or reserved IP range.
+     */
+    'block_private_ips' => false,
+
     'user_agents' => [
         'Laravel HTML Meta/2 (https://github.com/Kovah/laravel-html-meta)'
     ],

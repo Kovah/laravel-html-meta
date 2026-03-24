@@ -26,6 +26,8 @@ try {
     $metaTags = \Kovah\HtmlMeta\Facades\HtmlMeta::forUrl('https://kovah.de')->getMeta();
 } catch (\Kovah\HtmlMeta\Exceptions\InvalidUrlException $e) {
     // the provided URL is invalid
+} catch (\Kovah\HtmlMeta\Exceptions\DisallowedIpException $e) {
+    // the URL points to a blocked non-public IP address
 } catch (\Kovah\HtmlMeta\Exceptions\UnreachableUrlException $e) {
     // the website under this URL is not reachable
 }
@@ -138,6 +140,22 @@ The custom_options configuration is an advanced feature and can be used to pass 
     'allow_redirects' => false,
 ],
 ```
+
+### Blocking private IP targets
+
+If you want to prevent requests to non-public IP addresses, enable the `block_private_ips` option:
+
+```php
+'block_private_ips' => true,
+```
+
+When enabled, the package:
+
+- rejects URLs that already use a non-public IPv4 or IPv6 host directly
+- resolves hostname targets before the request is sent
+- throws `Kovah\HtmlMeta\Exceptions\DisallowedIpException` if any resolved DNS record points to a non-public IP range
+
+This includes private, loopback, link-local and other reserved IP ranges.
 
 
 ## Parsing Details

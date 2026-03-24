@@ -6,8 +6,11 @@ use GuzzleHttp\Exception\RequestException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Kovah\HtmlMeta\Exceptions\DisallowedIpException;
 use Kovah\HtmlMeta\Exceptions\InvalidUrlException;
 use Kovah\HtmlMeta\Exceptions\UnreachableUrlException;
+use Kovah\HtmlMeta\HtmlMeta;
+use Kovah\HtmlMeta\HtmlMetaParser;
 use Kovah\HtmlMeta\HtmlMetaResult;
 
 class HtmlMetaTest extends TestCase
@@ -206,5 +209,95 @@ class HtmlMetaTest extends TestCase
         $response = $this->app['HtmlMeta']->forUrl('https://example.com')->getResponse();
 
         $this->assertEquals(302, $response->status());
+    }
+
+    public function testPrivateIpProtectionIsDisabledByDefault(): void
+    {
+        Http::fake(['*' => Http::response('<title>Test</title>')]);
+
+        $result = $this->app['HtmlMeta']->forUrl('http://192.168.0.10');
+
+        self::assertTrue(is_a($result, HtmlMetaResult::class));
+    }
+
+    public function testPrivateIpv4UrlIsBlockedWhenProtectionIsEnabled(): void
+    {
+        Http::fake(['*' => Http::response('<title>Test</title>')]);
+
+        config()->set('html-meta.block_private_ips', true);
+
+        $this->expectException(DisallowedIpException::class);
+
+        try {
+            $this->app['HtmlMeta']->forUrl('http://192.168.0.10');
+        } finally {
+            Http::assertNothingSent();
+        }
+    }
+
+    public function testReservedIpv6UrlIsBlockedWhenProtectionIsEnabled(): void
+    {
+        Http::fake(['*' => Http::response('<title>Test</title>')]);
+
+        config()->set('html-meta.block_private_ips', true);
+
+        $this->expectException(DisallowedIpException::class);
+
+        try {
+            $this->app['HtmlMeta']->forUrl('http://[::1]');
+        } finally {
+            Http::assertNothingSent();
+        }
+    }
+
+    public function testPublicIpUrlIsAllowedWhenProtectionIsEnabled(): void
+    {
+        Http::fake(['*' => Http::response('<title>Test</title>')]);
+
+        config()->set('html-meta.block_private_ips', true);
+
+        $result = $this->app['HtmlMeta']->forUrl('http://8.8.8.8');
+
+        self::assertTrue(is_a($result, HtmlMetaResult::class));
+    }
+
+    public function testHostnameResolvingToPrivateIpIsBlockedWhenProtectionIsEnabled(): void
+    {
+        Http::fake(['*' => Http::response('<title>Test</title>')]);
+
+        config()->set('html-meta.block_private_ips', true);
+
+        $meta = new class(new HtmlMetaParser()) extends HtmlMeta {
+            protected function resolveHostIps(string $host): array
+            {
+                return $host === 'example.com' ? ['192.168.1.10'] : [];
+            }
+        };
+
+        $this->expectException(DisallowedIpException::class);
+
+        try {
+            $meta->forUrl('https://example.com');
+        } finally {
+            Http::assertNothingSent();
+        }
+    }
+
+    public function testHostnameResolvingToPublicIpsIsAllowedWhenProtectionIsEnabled(): void
+    {
+        Http::fake(['*' => Http::response('<title>Test</title>')]);
+
+        config()->set('html-meta.block_private_ips', true);
+
+        $meta = new class(new HtmlMetaParser()) extends HtmlMeta {
+            protected function resolveHostIps(string $host): array
+            {
+                return $host === 'example.com' ? ['8.8.8.8', '2001:4860:4860::8888'] : [];
+            }
+        };
+
+        $result = $meta->forUrl('https://example.com');
+
+        self::assertTrue(is_a($result, HtmlMetaResult::class));
     }
 }
