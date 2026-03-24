@@ -21,12 +21,12 @@
         "php": "^8.2",
         "ext-iconv": "*",
         "guzzlehttp/guzzle": "^7.2",
-        "illuminate/http": "^12.0 | ^13.0",
-        "illuminate/support": "^12.0 | ^13.0"
+        "illuminate/http": "^11.0 | ^12.0 | ^13.0",
+        "illuminate/support": "^11.0 | ^12.0 | ^13.0"
     },
     "require-dev": {
         "mockery/mockery": "^1.4.2",
-        "orchestra/testbench": "^10.0 | ^11.0",
+        "orchestra/testbench": "^9.0 | ^10.0 | ^11.0",
         "phpunit/phpunit": "^9.0 | ^10.0 | ^11.0 | ^12.5.12"
     },
     "autoload": {

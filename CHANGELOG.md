@@ -2,10 +2,10 @@
 
 ## 4.4.0
 
-- Drop EOL support for Laravel 9, 10 and 11.
+- Drop EOL support for Laravel 9 and 10.
 - Drop EOL support for PHP 8.0 and 8.1.
 - Add support for PHP 8.5.
-- Keep package compatibility aligned with supported Laravel 12 and 13 releases.
+- Keep package compatibility aligned with supported Laravel 11, 12 and 13 releases.
 
 ## 4.3.0
 
