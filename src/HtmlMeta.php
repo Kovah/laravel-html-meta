@@ -140,11 +140,22 @@ class HtmlMeta
 
     private function preparePrivateIpProtection(): void
     {
+        $this->request = $this->applyPrivateIpProtection($this->request);
+    }
+
+    /**
+     * Attaches the private-IP protection to an arbitrary pending request, so
+     * consuming applications can reuse the exact same validation for requests
+     * they build and send themselves instead of reimplementing it (which is
+     * how GHSA-x8w7-mhjm-xvj2 arose: a second, divergent copy of this logic).
+     */
+    public function applyPrivateIpProtection(PendingRequest $request): PendingRequest
+    {
         if (!$this->shouldBlockPrivateIps()) {
-            return;
+            return $request;
         }
 
-        $this->request = $this->request->withRequestMiddleware(function (RequestInterface $request) {
+        return $request->withRequestMiddleware(function (RequestInterface $request) {
             $host = $this->normalizeHost($request->getUri()->getHost());
 
             if ($host !== '') {
@@ -201,7 +212,16 @@ class HtmlMeta
             return;
         }
 
-        foreach ($this->resolveHostIps($host) as $ip) {
+        $ips = $this->resolveHostIps($host);
+
+        if ($ips === []) {
+            // Fail closed: an unresolvable host cannot be proven public. Both
+            // dns_get_record() and gethostbynamel() coming back empty used to
+            // be silently treated as "no private IP found" (GHSA-x8w7-mhjm-xvj2).
+            throw new DisallowedIpException("$url could not be resolved to a public IP address.");
+        }
+
+        foreach ($ips as $ip) {
             if (!$this->isPublicIp($ip)) {
                 throw new DisallowedIpException("$url resolves to a non-public IP address.");
             }

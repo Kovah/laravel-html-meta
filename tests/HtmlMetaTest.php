@@ -300,4 +300,59 @@ class HtmlMetaTest extends TestCase
 
         self::assertTrue(is_a($result, HtmlMetaResult::class));
     }
+
+    /**
+     * Regression test for GHSA-x8w7-mhjm-xvj2. Previously, if resolveHostIps()
+     * returned an empty array (e.g. because both dns_get_record() and
+     * gethostbynamel() failed to resolve the host), the validating loop in
+     * assertHostUsesPublicIps() had nothing to iterate over and silently let
+     * the request through. An unresolvable host must now be treated as
+     * disallowed instead.
+     */
+    public function testHostnameIsBlockedWhenDnsResolutionReturnsNoRecords(): void
+    {
+        Http::fake(['*' => Http::response('<title>Test</title>')]);
+
+        config()->set('html-meta.block_private_ips', true);
+
+        $meta = new class(new HtmlMetaParser()) extends HtmlMeta {
+            protected function resolveHostIps(string $host): array
+            {
+                return [];
+            }
+        };
+
+        $this->expectException(DisallowedIpException::class);
+
+        try {
+            $meta->forUrl('https://unresolvable-internal.example');
+        } finally {
+            Http::assertNothingSent();
+        }
+    }
+
+    /**
+     * The private-IP protection is also exposed publicly via
+     * applyPrivateIpProtection() so consuming applications can attach it to
+     * a request they build and send themselves, instead of reimplementing
+     * the validation logic (see GHSA-x8w7-mhjm-xvj2).
+     */
+    public function testApplyPrivateIpProtectionBlocksAnArbitraryRequestToAPrivateHost(): void
+    {
+        config()->set('html-meta.block_private_ips', true);
+
+        $request = $this->app['HtmlMeta']->applyPrivateIpProtection(
+            Http::timeout(5)
+        );
+
+        Http::fake(['*' => Http::response()]);
+
+        $this->expectException(DisallowedIpException::class);
+
+        try {
+            $request->get('http://192.168.0.10');
+        } finally {
+            Http::assertNothingSent();
+        }
+    }
 }
