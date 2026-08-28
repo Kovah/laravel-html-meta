@@ -148,6 +148,20 @@ class HtmlMeta
      * consuming applications can reuse the exact same validation for requests
      * they build and send themselves instead of reimplementing it (which is
      * how GHSA-x8w7-mhjm-xvj2 arose: a second, divergent copy of this logic).
+     *
+     * Validating the hostname is not enough on its own: cURL re-resolves the
+     * host itself when it connects, independently of the lookup used here.
+     * An attacker controlling DNS for the host (short TTL, authoritative
+     * answers) can return a public IP for our lookup and a private/loopback
+     * one moments later for cURL's own connect-time lookup (DNS rebinding).
+     * We use withMiddleware() rather than withRequestMiddleware() because we
+     * need access to the transfer $options, not just the PSR-7 request, to
+     * pin the connection to the IP(s) we just validated via CURLOPT_RESOLVE.
+     * CURLOPT_RESOLVE only has an effect when Guzzle actually hands the
+     * request to its cURL handler; if cURL is unavailable, or the request
+     * forces Guzzle's StreamHandler via the "stream" option, the option is
+     * silently ignored and the rebinding window would reopen unnoticed. We
+     * fail closed in that case rather than send an unpinned request.
      */
     public function applyPrivateIpProtection(PendingRequest $request): PendingRequest
     {
@@ -155,15 +169,58 @@ class HtmlMeta
             return $request;
         }
 
-        return $request->withRequestMiddleware(function (RequestInterface $request) {
-            $host = $this->normalizeHost($request->getUri()->getHost());
+        return $request->withMiddleware(function (callable $handler) {
+            return function (RequestInterface $request, array $options) use ($handler) {
+                $uri = $request->getUri();
+                $host = $this->normalizeHost($uri->getHost());
 
-            if ($host !== '') {
-                $this->assertHostUsesPublicIps($host, (string) $request->getUri());
-            }
+                if ($host !== '') {
+                    $validatedIps = $this->resolveValidatedPublicIps($host, (string) $uri);
 
-            return $request;
+                    if ($validatedIps !== []) {
+                        if (!$this->canPinResolvedIps($options)) {
+                            throw new DisallowedIpException(
+                                "$uri could not be requested safely: the validated IP address " .
+                                'cannot be pinned for this transport (cURL is unavailable, or a ' .
+                                'stream-based transport was forced), which would otherwise reopen ' .
+                                'a DNS-rebinding gap between validation and connection.'
+                            );
+                        }
+
+                        $options['curl'][CURLOPT_RESOLVE] = array_merge(
+                            $options['curl'][CURLOPT_RESOLVE] ?? [],
+                            $this->buildCurlResolveEntries($host, $uri->getScheme(), $uri->getPort(), $validatedIps)
+                        );
+                    }
+                }
+
+                return $handler($request, $options);
+            };
         });
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    private function canPinResolvedIps(array $options): bool
+    {
+        return defined('CURLOPT_RESOLVE')
+            && function_exists('curl_version')
+            && ($options['stream'] ?? false) !== true;
+    }
+
+    /**
+     * @param array<int, string> $ips
+     * @return array<int, string>
+     */
+    private function buildCurlResolveEntries(string $host, string $scheme, ?int $port, array $ips): array
+    {
+        $port ??= $scheme === 'https' ? 443 : 80;
+
+        return array_map(
+            fn (string $ip) => sprintf('%s:%d:%s', $host, $port, str_contains($ip, ':') ? "[$ip]" : $ip),
+            $ips
+        );
     }
 
     /**
@@ -200,16 +257,36 @@ class HtmlMeta
     }
 
     /**
+     * Kept with its original void signature for backwards compatibility:
+     * this method is protected, so consuming applications may have
+     * subclassed HtmlMeta and overridden it. Changing its return type would
+     * be a breaking change for any such override (PHP requires overriding
+     * methods to declare a compatible/covariant return type). New code
+     * needing the resolved IPs should use resolveValidatedPublicIps().
+     *
      * @throws DisallowedIpException
      */
     protected function assertHostUsesPublicIps(string $host, string $url): void
+    {
+        $this->resolveValidatedPublicIps($host, $url);
+    }
+
+    /**
+     * @throws DisallowedIpException
+     * @return array<int, string> The validated public IP(s) $host resolved to,
+     *         so the caller can pin the connection to them (see
+     *         applyPrivateIpProtection()) instead of letting cURL re-resolve
+     *         the host on its own. Empty when $host was itself a literal IP,
+     *         since no DNS lookup (and thus no rebinding) is involved there.
+     */
+    protected function resolveValidatedPublicIps(string $host, string $url): array
     {
         if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
             if (!$this->isPublicIp($host)) {
                 throw new DisallowedIpException("$url points to a non-public IP address.");
             }
 
-            return;
+            return [];
         }
 
         $ips = $this->resolveHostIps($host);
@@ -226,6 +303,8 @@ class HtmlMeta
                 throw new DisallowedIpException("$url resolves to a non-public IP address.");
             }
         }
+
+        return $ips;
     }
 
     /**

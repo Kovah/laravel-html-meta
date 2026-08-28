@@ -355,4 +355,157 @@ class HtmlMetaTest extends TestCase
             Http::assertNothingSent();
         }
     }
+
+    /**
+     * Validating the hostname alone is a TOCTOU gap: cURL re-resolves the
+     * host itself at connect time, independently of the lookup used for
+     * validation. An attacker with authoritative, short-TTL DNS for the host
+     * can answer with a public IP for our lookup and a private/loopback one
+     * moments later for cURL's own lookup (DNS rebinding). The fix pins the
+     * connection to the IP(s) that were actually validated via
+     * CURLOPT_RESOLVE, so this asserts the outgoing transfer options carry
+     * that pin rather than just checking the request URI's host is unchanged
+     * (which would be true both before and after the fix, and therefore
+     * would not catch a regression).
+     */
+    public function testApplyPrivateIpProtectionPinsTheValidatedIpViaCurlResolve(): void
+    {
+        config()->set('html-meta.block_private_ips', true);
+
+        $meta = new class(new HtmlMetaParser()) extends HtmlMeta {
+            protected function resolveHostIps(string $host): array
+            {
+                return $host === 'example.com' ? ['8.8.8.8'] : [];
+            }
+        };
+
+        $request = $meta->applyPrivateIpProtection(Http::timeout(5));
+
+        $middlewareProperty = new \ReflectionProperty($request, 'middleware');
+        $middlewareProperty->setAccessible(true);
+        $middleware = $middlewareProperty->getValue($request)->last();
+
+        $capturedOptions = null;
+        $handler = $middleware(function ($request, array $options) use (&$capturedOptions) {
+            $capturedOptions = $options;
+
+            return new \GuzzleHttp\Promise\FulfilledPromise(
+                new \GuzzleHttp\Psr7\Response(200)
+            );
+        });
+
+        $handler(new \GuzzleHttp\Psr7\Request('GET', 'https://example.com/'), []);
+
+        self::assertSame(
+            ['example.com:443:8.8.8.8'],
+            $capturedOptions['curl'][CURLOPT_RESOLVE] ?? null
+        );
+    }
+
+    /**
+     * Multiple validated IPs (e.g. IPv4 + IPv6) must all be pinned, with
+     * IPv6 addresses bracketed as libcurl requires for CURLOPT_RESOLVE.
+     */
+    public function testApplyPrivateIpProtectionPinsAllValidatedIpsIncludingIpv6(): void
+    {
+        config()->set('html-meta.block_private_ips', true);
+
+        $meta = new class(new HtmlMetaParser()) extends HtmlMeta {
+            protected function resolveHostIps(string $host): array
+            {
+                return $host === 'example.com' ? ['8.8.8.8', '2001:4860:4860::8888'] : [];
+            }
+        };
+
+        $request = $meta->applyPrivateIpProtection(Http::timeout(5));
+
+        $middlewareProperty = new \ReflectionProperty($request, 'middleware');
+        $middlewareProperty->setAccessible(true);
+        $middleware = $middlewareProperty->getValue($request)->last();
+
+        $capturedOptions = null;
+        $handler = $middleware(function ($request, array $options) use (&$capturedOptions) {
+            $capturedOptions = $options;
+
+            return new \GuzzleHttp\Promise\FulfilledPromise(
+                new \GuzzleHttp\Psr7\Response(200)
+            );
+        });
+
+        $handler(new \GuzzleHttp\Psr7\Request('GET', 'http://example.com/'), []);
+
+        self::assertSame(
+            ['example.com:80:8.8.8.8', 'example.com:80:[2001:4860:4860::8888]'],
+            $capturedOptions['curl'][CURLOPT_RESOLVE] ?? null
+        );
+    }
+
+    /**
+     * CURLOPT_RESOLVE only has an effect when Guzzle actually dispatches the
+     * request through its cURL handler. A request-level "stream" => true
+     * option forces Guzzle's StreamHandler instead, which silently ignores
+     * curl options - reopening the DNS-rebinding gap with no error. This
+     * must fail closed rather than send an unpinned request.
+     */
+    public function testApplyPrivateIpProtectionFailsClosedWhenStreamTransportIsForced(): void
+    {
+        config()->set('html-meta.block_private_ips', true);
+
+        $meta = new class(new HtmlMetaParser()) extends HtmlMeta {
+            protected function resolveHostIps(string $host): array
+            {
+                return $host === 'example.com' ? ['8.8.8.8'] : [];
+            }
+        };
+
+        $request = $meta->applyPrivateIpProtection(Http::timeout(5));
+
+        $middlewareProperty = new \ReflectionProperty($request, 'middleware');
+        $middlewareProperty->setAccessible(true);
+        $middleware = $middlewareProperty->getValue($request)->last();
+
+        $handler = $middleware(function ($request, array $options) {
+            return new \GuzzleHttp\Promise\FulfilledPromise(
+                new \GuzzleHttp\Psr7\Response(200)
+            );
+        });
+
+        $this->expectException(DisallowedIpException::class);
+
+        $handler(new \GuzzleHttp\Psr7\Request('GET', 'https://example.com/'), ['stream' => true]);
+    }
+
+    /**
+     * Regression test for a BC break risk: assertHostUsesPublicIps() is
+     * protected, so consuming applications may already have subclassed
+     * HtmlMeta and overridden it with its original `void` return type. If
+     * the base method's signature changed to `array`, PHP would raise a
+     * fatal "declaration must be compatible" error as soon as such a
+     * subclass is defined. Defining and exercising one here, using the
+     * original void signature, proves the base signature is unchanged and
+     * that the override is still consulted.
+     */
+    public function testSubclassOverridingAssertHostUsesPublicIpsWithOriginalVoidSignatureStillWorks(): void
+    {
+        config()->set('html-meta.block_private_ips', true);
+
+        $meta = new class(new HtmlMetaParser()) extends HtmlMeta {
+            public bool $overrideWasCalled = false;
+
+            protected function assertHostUsesPublicIps(string $host, string $url): void
+            {
+                $this->overrideWasCalled = true;
+
+                parent::assertHostUsesPublicIps($host, $url);
+            }
+        };
+
+        $this->expectException(DisallowedIpException::class);
+
+        try {
+            $meta->forUrl('http://192.168.0.10');
+        } finally {
+            self::assertTrue($meta->overrideWasCalled);
+        }
+    }
 }
