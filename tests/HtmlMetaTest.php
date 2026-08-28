@@ -12,6 +12,7 @@ use Kovah\HtmlMeta\Exceptions\UnreachableUrlException;
 use Kovah\HtmlMeta\HtmlMeta;
 use Kovah\HtmlMeta\HtmlMetaParser;
 use Kovah\HtmlMeta\HtmlMetaResult;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 class HtmlMetaTest extends TestCase
 {
@@ -473,6 +474,65 @@ class HtmlMetaTest extends TestCase
         $this->expectException(DisallowedIpException::class);
 
         $handler(new \GuzzleHttp\Psr7\Request('GET', 'https://example.com/'), ['stream' => true]);
+    }
+
+    /**
+     * Regression test for GHSA-h73m-vm5m-f6h3. IPv6 transition mechanisms
+     * (NAT64, 6to4, Teredo) carry an IPv4 address embedded inside an
+     * otherwise "public-looking" IPv6 address. filter_var()'s range flags
+     * only inspect the IPv6 address itself, so a private/link-local IPv4
+     * (here, the 169.254.169.254 cloud metadata address) embedded this way
+     * used to slip through isPublicIp() and reach the network.
+     *
+     */
+    #[DataProvider('transitionAddressesEmbeddingPrivateIpv4')]
+    public function testIpv6TransitionAddressEmbeddingPrivateIpv4IsBlockedWhenProtectionIsEnabled(string $ip): void
+    {
+        Http::fake(['*' => Http::response('<title>Test</title>')]);
+
+        config()->set('html-meta.block_private_ips', true);
+
+        $this->expectException(DisallowedIpException::class);
+
+        try {
+            $this->app['HtmlMeta']->forUrl("http://[$ip]");
+        } finally {
+            Http::assertNothingSent();
+        }
+    }
+
+    public static function transitionAddressesEmbeddingPrivateIpv4(): array
+    {
+        return [
+            'NAT64 embedding cloud metadata IP' => ['64:ff9b::a9fe:a9fe'],
+            '6to4 embedding a private IP' => ['2002:c0a8:0001::1'],
+            'Teredo embedding a private IP' => ['2001::3f57:fefe'],
+        ];
+    }
+
+    /**
+     * Genuinely public IPv6 addresses using the same transition mechanisms
+     * must still be allowed through, to guard against over-blocking.
+     *
+     */
+    #[DataProvider('transitionAddressesEmbeddingPublicIpv4')]
+    public function testIpv6TransitionAddressEmbeddingPublicIpv4IsAllowedWhenProtectionIsEnabled(string $ip): void
+    {
+        Http::fake(['*' => Http::response('<title>Test</title>')]);
+
+        config()->set('html-meta.block_private_ips', true);
+
+        $result = $this->app['HtmlMeta']->forUrl("http://[$ip]");
+
+        self::assertTrue(is_a($result, HtmlMetaResult::class));
+    }
+
+    public static function transitionAddressesEmbeddingPublicIpv4(): array
+    {
+        return [
+            'NAT64 embedding a public IP' => ['64:ff9b::808:808'],
+            '6to4 embedding a public IP' => ['2002:0808:0808::1'],
+        ];
     }
 
     /**

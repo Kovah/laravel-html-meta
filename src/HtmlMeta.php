@@ -340,11 +340,48 @@ class HtmlMeta
 
     protected function isPublicIp(string $ip): bool
     {
-        return filter_var(
-            $ip,
-            FILTER_VALIDATE_IP,
-            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
-        ) !== false;
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+            return false;
+        }
+
+        $embeddedIpv4 = $this->extractTransitionEmbeddedIpv4($ip);
+
+        return $embeddedIpv4 === null || $this->isPublicIp($embeddedIpv4);
+    }
+
+    /**
+     * IPv6 transition mechanisms (NAT64, 6to4, Teredo) carry an IPv4 address
+     * inside an otherwise "public-looking" IPv6 address. filter_var()'s
+     * range flags only look at the IPv6 address itself, so a private IPv4
+     * (e.g. the 169.254.169.254 cloud metadata address) embedded this way
+     * slips past the check above. On a network with NAT64/6to4/Teredo
+     * translation, the request then actually lands on that embedded address
+     * (GHSA-h73m-vm5m-f6h3). We work on the binary form via inet_pton()
+     * rather than matching the textual representation, since IPv6 addresses
+     * have multiple valid textual forms that a string/regex match would miss.
+     */
+    private function extractTransitionEmbeddedIpv4(string $ip): ?string
+    {
+        $binary = inet_pton($ip);
+
+        if ($binary === false || strlen($binary) !== 16) {
+            return null;
+        }
+
+        if (str_starts_with($binary, "\x00\x64\xff\x9b\x00\x00\x00\x00\x00\x00\x00\x00")) {
+            // NAT64 well-known prefix, 64:ff9b::/96
+            $embedded = substr($binary, 12, 4);
+        } elseif (str_starts_with($binary, "\x20\x02")) {
+            // 6to4, 2002::/16
+            $embedded = substr($binary, 2, 4);
+        } elseif (str_starts_with($binary, "\x20\x01\x00\x00")) {
+            // Teredo, 2001:0000::/32 - the embedded address is XOR-obscured
+            $embedded = substr($binary, 12, 4) ^ "\xff\xff\xff\xff";
+        } else {
+            return null;
+        }
+
+        return inet_ntop($embedded) ?: null;
     }
 
     protected function normalizeHost(string $host): string
