@@ -405,7 +405,9 @@ class HtmlMetaTest extends TestCase
 
     /**
      * Multiple validated IPs (e.g. IPv4 + IPv6) must all be pinned, with
-     * IPv6 addresses bracketed as libcurl requires for CURLOPT_RESOLVE.
+     * IPv6 addresses bracketed as libcurl requires for CURLOPT_RESOLVE. They
+     * must share a single entry: libcurl keeps only the last entry for a
+     * given host and port, so separate entries would pin only the last IP.
      */
     public function testApplyPrivateIpProtectionPinsAllValidatedIpsIncludingIpv6(): void
     {
@@ -436,7 +438,7 @@ class HtmlMetaTest extends TestCase
         $handler(new \GuzzleHttp\Psr7\Request('GET', 'http://example.com/'), []);
 
         self::assertSame(
-            ['example.com:80:8.8.8.8', 'example.com:80:[2001:4860:4860::8888]'],
+            ['example.com:80:8.8.8.8,[2001:4860:4860::8888]'],
             $capturedOptions['curl'][CURLOPT_RESOLVE] ?? null
         );
     }

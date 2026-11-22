@@ -189,7 +189,7 @@ class HtmlMeta
 
                         $options['curl'][CURLOPT_RESOLVE] = array_merge(
                             $options['curl'][CURLOPT_RESOLVE] ?? [],
-                            $this->buildCurlResolveEntries($host, $uri->getScheme(), $uri->getPort(), $validatedIps)
+                            [$this->buildCurlResolveEntry($host, $uri->getScheme(), $uri->getPort(), $validatedIps)]
                         );
                     }
                 }
@@ -210,17 +210,24 @@ class HtmlMeta
     }
 
     /**
+     * All IPs must go into a single "host:port:ip1,ip2" entry. libcurl keeps
+     * only the last CURLOPT_RESOLVE entry for a given host and port, so one
+     * entry per IP would pin the connection to the last IP alone. For a
+     * dual-stack host that is usually an IPv6 address, which fails on
+     * machines without IPv6 connectivity.
+     *
      * @param array<int, string> $ips
-     * @return array<int, string>
      */
-    private function buildCurlResolveEntries(string $host, string $scheme, ?int $port, array $ips): array
+    private function buildCurlResolveEntry(string $host, string $scheme, ?int $port, array $ips): string
     {
         $port ??= $scheme === 'https' ? 443 : 80;
 
-        return array_map(
-            fn (string $ip) => sprintf('%s:%d:%s', $host, $port, str_contains($ip, ':') ? "[$ip]" : $ip),
+        $addresses = array_map(
+            fn (string $ip) => str_contains($ip, ':') ? "[$ip]" : $ip,
             $ips
         );
+
+        return sprintf('%s:%d:%s', $host, $port, implode(',', $addresses));
     }
 
     /**

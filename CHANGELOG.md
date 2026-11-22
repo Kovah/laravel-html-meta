@@ -5,6 +5,7 @@
 - Add support for Guzzle 8 (used together with Laravel 13, as Laravel 11 and 12 only support Guzzle 7).
 - Add support for PHP 8.6.
 - Drop support for PHP 8.2.
+- Fix the private IP protection only pinning the last resolved IP of a host. Requests to hosts with both IPv4 and IPv6 addresses failed on machines without IPv6 connectivity.
 
 ## 5.0.2
 
