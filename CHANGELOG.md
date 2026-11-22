@@ -1,5 +1,20 @@
 # Changelog
 
+## 6.0.0
+
+- Add support for Guzzle 8 (used together with Laravel 13, as Laravel 11 and 12 only support Guzzle 7).
+- Add support for PHP 8.6.
+- Drop support for PHP 8.2.
+
+## 5.0.2
+
+- Prevent blocking issues when IPv4 IPs are embedded within IPv6 addresses
+- Prevent curl from re-fetching IPs for a given hostname to prevent DNS rebinding attacks
+
+## 5.0.1
+
+- Fetching now fails if DNs returns no IPs, if blocking private IPs is turned on
+
 ## 5.0.0
 
 - Drop EOL support for Laravel 9 and 10.

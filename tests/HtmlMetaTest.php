@@ -95,7 +95,7 @@ class HtmlMetaTest extends TestCase
         Http::fake(function (Request $request) {
             throw new RequestException(
                 'cURL error 60: SSL certificate problem: self signed certificate',
-                new \GuzzleHttp\Psr7\Request('get', $request->url())
+                new \GuzzleHttp\Psr7\Request('GET', $request->url())
             );
         });
 
